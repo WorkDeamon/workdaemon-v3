@@ -406,3 +406,23 @@ brain tokens. Beta Tenant was only the VERIFICATION SUBJECT. Future companies
 get all of it at signup automatically (env-fallback Hermes daemon, live
 ingestion from turn one, cron round-robin); the backfill scripts exist for
 importing a company's pre-existing history on demand.
+
+## 2026-06-10 (cont.) · Deep pass for every provider + the connector quality contract
+
+- **nightlyDeepPass fixed for agent-provider workspaces**: `resolveWorkspaceKey`
+  now falls back to the env DeepSeek key when the workspace's own key is a
+  non-JSON-mode provider (hermes/ollama/azure/modal) — Cobalt went from
+  `skipped: provider-unsupported` to 3 findings / 2 briefings / 2 role-routed,
+  live-verified. Every company gets deep mining regardless of its daemon engine.
+- **Per-user-only connections now ingest everywhere**: cron + backfill fall back
+  to a staff token when no workspace token exists, so ALL connectors work for
+  tools only individual staff connected (Slack additionally sweeps every staff
+  token internally — that's the reference pattern).
+- **`api/_lib/connectors/README.md` — the connector contract**: the quality bar
+  every future tool from the 9,637-app catalog (`docs/integrations/CATALOG.md`)
+  must meet — all-seeing token handling, idempotent stable external_ids,
+  access-scoping-not-censoring (restricted+allowed_users, DMs excluded),
+  bounded/polite fetching (429 backoff, page caps), history-greedy first pull,
+  fail-soft. Plus the 5-step shipping checklist (incl. tick the catalog, verify
+  via `backfill_brain.mjs --ws=`).
+- Embeddings re-verified 100% after the re-runs (Cobalt 27/27).

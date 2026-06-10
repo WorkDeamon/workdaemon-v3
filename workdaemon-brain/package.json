@@ -1,12 +1,12 @@
 {
   "name": "workdaemon-brain",
   "version": "1.0.0",
-  "description": "WorkDaemon Company Brain — Intelligence Layer",
+  "description": "WorkDaemon Company Brain \u2014 Intelligence Layer",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "node api.js && tsx src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node api.js && node dist/index.js",
     "onboard": "tsx src/onboarding/run.ts",
     "query": "tsx src/query/run.ts"
   },

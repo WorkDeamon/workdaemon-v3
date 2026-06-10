@@ -3,7 +3,7 @@ import { requireAuth, adminClient } from './_lib/supabase.js';
 import { researchRole, researchCompany, scanOneWorkspace, SCAN_COLUMNS } from './_lib/research_actions.js';
 import { fail, enforceRateLimit, decryptSecret, delimitUntrusted, verifyServiceToken, timingSafeEqualStr } from './_lib/security.js';
 import { pickTierModels } from './_lib/brain_router.js';
-import { getAccessToken } from './_lib/oauth.js';
+import { getAccessToken, getUserTokens } from './_lib/oauth.js';
 import { unifiedCalendar } from './_lib/calendar.js';
 import { listSkills, getSkill, growSkills, anticipateForEvent } from './_lib/skills.js';
 import { shouldDeliver, engagement } from './_lib/calibration.js';
@@ -311,7 +311,12 @@ async function resolveWorkspaceKey(workspaceId, db) {
     const { data: ws } = await db.from('workspaces').select('openrouter_key, openrouter_model').eq('id', workspaceId).single();
     if (ws?.openrouter_key) keyRow = { provider: 'openrouter', api_key: ws.openrouter_key, model: ws.openrouter_model };
   }
-  if (!keyRow && process.env.DEEPSEEK_API_KEY) {
+  // Deep mining needs an OpenAI-compatible JSON-mode CLOUD model. A workspace
+  // whose key is an agent/self-hosted provider (hermes/ollama/azure/modal) was
+  // silently skipping the deep pass ('provider-unsupported' — hit by Cobalt).
+  // Fall back to the env DeepSeek key so every company gets deep mining.
+  const DEEP_CAPABLE = new Set(['deepseek', 'openrouter', 'mistral', 'openai']);
+  if ((!keyRow || !DEEP_CAPABLE.has(keyRow.provider)) && process.env.DEEPSEEK_API_KEY) {
     keyRow = { provider: 'deepseek', api_key: process.env.DEEPSEEK_API_KEY, endpoint: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com', model: 'deepseek-chat' };
   }
   return keyRow;
@@ -690,7 +695,12 @@ export default async function handler(req, res) {
             for (const provider of providers) {
               const conn = CONNECTORS[provider];
               if (!conn) continue;
-              const tok = await getAccessToken(cronDb, w.id, provider); // null when only staff connected
+              // Workspace token first; if only staff connected this tool, act
+              // through a staff token so the connector still ingests (Slack
+              // sweeps ALL user tokens internally; others act as that user).
+              const tok = await getAccessToken(cronDb, w.id, provider)
+                || (await getUserTokens(cronDb, w.id, provider))[0]?.token
+                || null;
               try { await conn.ingest(cronDb, w.id, tok); } catch (e) { console.error('[brain] ingest %s ws=%s:', provider, w.id, e.message); }
             }
           }

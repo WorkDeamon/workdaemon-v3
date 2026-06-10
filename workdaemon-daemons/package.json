@@ -1,12 +1,12 @@
 {
   "name": "workdaemon-daemons",
   "version": "1.0.0",
-  "description": "WorkDaemon Staff Daemons — OpenClaw-powered agent layer",
+  "description": "WorkDaemon Staff Daemons \u2014 OpenClaw-powered agent layer",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "node api.js && tsx src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node api.js && node dist/index.js"
   },
   "dependencies": {
     "workdaemon-brain": "file:../workdaemon-brain",
