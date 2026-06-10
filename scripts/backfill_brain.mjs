@@ -25,7 +25,7 @@ process.env.SUPABASE_URL ||= process.env.NEXT_PUBLIC_SUPABASE_URL || process.env
 
 const { adminClient } = await import('../api/_lib/supabase.js');
 const { CONNECTORS } = await import('../api/_lib/connectors/index.js');
-const { getAccessToken } = await import('../api/_lib/oauth.js');
+const { getAccessToken, getUserTokens } = await import('../api/_lib/oauth.js');
 const { scanOneWorkspace, SCAN_COLUMNS } = await import('../api/_lib/research_actions.js');
 const { detectPatterns, nightlyDeepPass, buildGraph } = await import('../api/brain.js');
 const { auditBrain } = await import('../api/_lib/learning.js');
@@ -62,7 +62,10 @@ for (const w of targets) {
     const conn = CONNECTORS[provider];
     if (!conn) { console.log(`  - ${provider}: no connector yet`); continue; }
     await step(`ingest ${provider}`, async () => {
-      const tok = await getAccessToken(db, w.id, provider); // null when only staff connected
+      // Workspace token, else act through a staff token (per-user-only connections).
+      const tok = await getAccessToken(db, w.id, provider)
+        || (await getUserTokens(db, w.id, provider))[0]?.token
+        || null;
       return conn.ingest(db, w.id, tok);
     });
   }
